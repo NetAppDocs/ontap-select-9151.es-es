@@ -1,0 +1,248 @@
+---
+sidebar: sidebar 
+permalink: reference_plan_ots_storage.html 
+keywords: plan, planning, storage, software raid, hardware raid, raid, nvme 
+summary: Existen varios problemas de planificación relacionados con el almacenamiento en host de ONTAP Select que se deben tener en cuenta. 
+---
+= Consideraciones sobre almacenamiento y RAID
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Existen varios problemas de planificación relacionados con el almacenamiento en host de ONTAP Select que se deben tener en cuenta.
+
+
+NOTE: La información de soporte de almacenamiento externo se describe en link:reference_plan_ots_vnas.html["Requisitos de vNAS de ONTAP Select"].
+
+
+
+== Requisitos de la controladora RAID de hardware
+
+La controladora RAID en el host del hipervisor en el que se pone en marcha ONTAP Select debe cumplir varios requisitos.
+
+
+NOTE: Un host en el que se ejecuta ONTAP Select requiere unidades físicas locales cuando se utiliza una controladora RAID de hardware o la funcionalidad RAID del software que se proporciona con ONTAP Select. Si utiliza la solución vNAS de ONTAP Select para acceder a almacenamiento externo, no se utilizan una controladora RAID local y las funciones RAID de software.
+
+Los requisitos mínimos para la controladora RAID son:
+
+* Rendimiento de 12 Gbps
+* 512 MB de caché interna respaldada por batería o flash (SuperCap)
+* Configurado en modo de retroceso de escritura:
++
+** Activar el modo de conmutación por recuperación para “reescritura” (si está admitido)
+** Activar la política de "siempre lectura anticipada" (si se admite)
+
+
+* Todos los discos locales detrás de la controladora RAID deben configurarse como un único grupo RAID; se pueden usar múltiples controladoras RAID si es necesario:
++
+** Deshabilite la caché de unidad local para el grupo RAID, que es fundamental para conservar la integridad de los datos.
+
+
+* La configuración de LUN se debe realizar según las siguientes directrices:
++
+** Si el tamaño del grupo RAID supera el tamaño máximo de LUN de 64TB TB, debe configurar varias LUN de igual tamaño que consuman todo el almacenamiento disponible en el grupo RAID.
+** Si el tamaño del grupo RAID es menor que el tamaño máximo de LUN de 64TB TB, debe configurar una LUN que consuma todo el almacenamiento disponible dentro del grupo RAID.
+
+
+
+
+
+
+== Requisitos de RAID de software
+
+Al implementar un clúster de ONTAP Select en el hipervisor, puede utilizar la funcionalidad de software RAID que proporciona ONTAP Select en lugar de una controladora RAID de hardware local. Debe tener en cuenta varios requisitos y restricciones antes de implementar un clúster con RAID de software.
+
+
+
+=== Requisitos generales
+
+El entorno de una implantación de RAID de software debe cumplir los siguientes requisitos principales:
+
+* VMware ESXi 7,0 GA (compilación 15843807) o posterior
+* Licencia premium o superior de ONTAP Select
+* Solo unidades SSD locales
+* Separación de discos de sistema de la raíz y los agregados de datos
+* Sin controladora RAID de hardware en el host
+
+
+
+NOTE: Si hay un controlador RAID de hardware presente, consulte link:concept_stor_concepts_chars.html["Almacenamiento en profundidad"]la sección para conocer requisitos de configuración adicionales.
+
+
+
+=== Requisitos específicos de ESXi
+
+* VMware ESXi 7,0 GA (compilación 15843807) o posterior
+* No se admiten VMware VMotion, alta disponibilidad y DRS
+* No se puede usar RAID de software con un nodo que se haya actualizado desde ONTAP Select 9,4 o una versión anterior. Si este es el caso, debe crear un nuevo nodo para la implementación de RAID de software.
+
+
+
+
+=== Requisitos específicos de KVM
+
+También hay requisitos específicos de configuración de paquetes de software. Consulte link:https://docs.netapp.com/us-en/ontap-select/reference_chk_host_prep.html#kvm-hypervisor["Preparación del servidor Linux"] para obtener más información.
+
+Expectativas de medios para KVM:: Los dispositivos de almacenamiento flash SSD utilizados deben cumplir los siguientes requisitos adicionales:
++
+--
+* Los dispositivos SSD deben informarse de forma precisa y persistente al host Linux a través de los siguientes métodos:
++
+** # cat /sys/block/<device>/queue/rotational
++
+El valor indicado para estos comandos debe ser '0'.
+
+
+
+* Se espera que los dispositivos estén conectados a un HBA o, en algunos casos, a un controlador RAID configurado para funcionar en modo JBOD. Cuando se utiliza un controlador RAID, la función del dispositivo debe pasar a través del host sin superponer ninguna funcionalidad RAID. Cuando utilice un controlador RAID en modo JBOD, debe revisar la documentación de RAID o ponerse en contacto con el proveedor según sea necesario para asegurarse de que el dispositivo informa de la velocidad de rotación como '0'.
+* Hay dos componentes de almacenamiento separados:
++
+** Almacenamiento de equipos virtuales
++
+Se trata de un pool de LVM (pool de almacenamiento) que contiene los datos del sistema utilizados para alojar la máquina virtual de ONTAP Select. El pool de LVM debe estar respaldado por un dispositivo flash de alta resistencia y puede ser SAS, SATA o NVMe. Se recomienda un dispositivo NVMe para mejorar el rendimiento.
+
+** Discos de datos
++
+Se trata de un conjunto de unidades SSD SAS o SATA que se utilizan para la gestión de datos. Los dispositivos SSD deben ser de nivel empresarial y duraderos. La interfaz NVMe no se admite.
+
+
+
+* Todos los dispositivos deben tener formato 512BPS.
+
+
+--
+
+
+
+
+=== Configuración de nodos de ONTAP Select
+
+Debe configurar cada nodo ONTAP Select y cada host de hipervisor de la siguiente forma para separar los discos del sistema de los agregados de datos y raíz:
+
+* Cree un pool de almacenamiento del sistema. Debe crear un pool de almacenamiento para los datos del sistema ONTAP Select. Debe conectar el pool de almacenamiento como parte de la configuración del nodo ONTAP Select.
+* Conectar los discos físicos necesarios el host del hipervisor debe tener conectados los discos SSD necesarios y disponibles para su uso en la máquina virtual de ONTAP Select. Estas unidades contienen los agregados de datos y raíz. Debe conectar los discos de almacenamiento como parte de la configuración del nodo ONTAP Select.
+
+
+
+
+== Restricciones de la capacidad de almacenamiento
+
+Como parte de la planificación de una implementación de ONTAP Select, debe tener en cuenta las restricciones relacionadas con el uso y la asignación de almacenamiento.
+
+A continuación se presentan las restricciones de almacenamiento más importantes. También debe revisar el link:https://mysupport.netapp.com/matrix/["Herramienta de matriz de interoperabilidad de NetApp"^] para obtener información más detallada.
+
+
+TIP: ONTAP Select aplica varias restricciones relacionadas con la asignación y el uso del almacenamiento. Antes de poner en marcha un clúster de ONTAP Select o adquirir una licencia, debería estar familiarizado con estas restricciones. Consulte la link:https://docs.netapp.com/us-en/ontap-select/concept_lic_evaluation.html["Licencia"] sección para obtener más información.
+
+
+
+=== Calcule la capacidad de almacenamiento bruta
+
+La capacidad de almacenamiento de ONTAP Select corresponde al tamaño total permitido de los datos virtuales y los discos raíz conectados a la máquina virtual ONTAP Select. Debe tener en cuenta esto al asignar capacidad.
+
+
+
+=== Capacidad de almacenamiento mínima para un clúster de un único nodo
+
+El tamaño mínimo del pool de almacenamiento asignado al nodo en un clúster de un único nodo es:
+
+* Evaluación: 500 GB
+* Producción: 1,0 TB
+
+
+La asignación mínima para una puesta en marcha de producción consiste en 1 TB para los datos de usuario, más aproximadamente 266 GB utilizados por varios procesos internos de ONTAP Select, lo que se considera sobrecarga requerida.
+
+
+
+=== Capacidad de almacenamiento mínima para un clúster multinodo
+
+El tamaño mínimo del pool de almacenamiento asignado a cada nodo en un clúster de varios nodos es:
+
+* Evaluación: 1.9 TB
+* Producción: 2,0 TB
+
+
+La asignación mínima para una puesta en marcha de producción consiste en 2 TB para los datos de usuario, más aproximadamente 266 GB utilizados por varios procesos internos de ONTAP Select, lo que se considera sobrecarga requerida.
+
+[NOTE]
+====
+Cada nodo de una pareja de alta disponibilidad debe tener la misma capacidad de almacenamiento.
+
+Al calcular la cantidad de almacenamiento para un par de alta disponibilidad, se debe tener en cuenta que todos los agregados (raíz y datos) están duplicados. Como resultado, cada plex del agregado consume la misma cantidad de almacenamiento.
+
+Por ejemplo, cuando se crea un agregado de 2TB TB, se asignan 2TB GB a dos instancias plex (2TB GB para plex0 y 2TB GB para plex1) o 4TB GB de la cantidad total de almacenamiento con licencia.
+
+====
+
+
+=== La capacidad de almacenamiento y varios pools de almacenamiento
+
+Puede configurar cada nodo de ONTAP Select para que use hasta 400 TB de almacenamiento cuando utilice almacenamiento local de conexión directa, VMware VSAN o cabinas de almacenamiento externas. Sin embargo, el tamaño máximo de un pool de almacenamiento único es de 64 TB cuando se utilizan cabinas de almacenamiento de conexión directa o cabinas de almacenamiento externas. Por lo tanto, si tiene pensado utilizar más de 64 TB de almacenamiento en estas situaciones, debe asignar varios pools de almacenamiento de la siguiente manera:
+
+* Asigne el pool de almacenamiento inicial durante el proceso de creación del clúster
+* Aumente el almacenamiento del nodo asignando uno o varios pools de almacenamiento adicionales
+
+
+
+NOTE: Un búfer del 2% se deja sin utilizar en cada pool de almacenamiento y no requiere una licencia de capacidad. ONTAP Select no utiliza este almacenamiento, a menos que se especifique una capacidad máxima. Si se especifica un límite de capacidad, se utilizará esa cantidad de almacenamiento a menos que la cantidad especificada caiga en la zona de búfer del 2%. El búfer es necesario para evitar errores ocasionales que se producen al intentar asignar todo el espacio de un pool de almacenamiento.
+
+
+
+=== Capacidad de almacenamiento y VSAN de VMware
+
+Cuando se utiliza VSAN de VMware, un almacén de datos puede ser mayor que 64 TB. Sin embargo, solo se pueden asignar inicialmente hasta 64 TB al crear el clúster de ONTAP Select. Una vez creado el clúster, puede asignar almacenamiento adicional desde el almacén de datos VSAN existente. La capacidad de almacenes de datos VSAN que puede consumir ONTAP Select se basa en el conjunto de políticas de almacenamiento de máquinas virtuales.
+
+
+
+=== Mejores prácticas
+
+Debe tener en cuenta las siguientes recomendaciones en relación con el hardware del núcleo del hipervisor:
+
+* Todas las unidades de un único agregado de ONTAP Select deben ser del mismo tipo. Por ejemplo, no se deben mezclar unidades HDD y SSD en el mismo agregado.
+
+
+
+
+== Requisitos adicionales de unidad de disco basados en la licencia de la plataforma
+
+Las unidades que elija están limitadas en función de la oferta de licencia de la plataforma.
+
+
+NOTE: Los requisitos de la unidad de disco se aplican cuando se utilizan unidades y controladoras RAID locales, así como RAID de software. Estos requisitos no se aplican a almacenamiento externo al que accede a través de la solución vNAS de ONTAP Select.
+
+.Estándar
+* DE 8 A 60 UNIDADES HDD INTERNAS (NL-SAS, SATA Y SAS A 10 000 RPM)
+
+
+.Premium
+* DE 8 A 60 UNIDADES HDD INTERNAS (NL-SAS, SATA Y SAS A 10 000 RPM)
+* 4 a 60 SSD internos
+
+
+.Premium XL
+* DE 8 A 60 UNIDADES HDD INTERNAS (NL-SAS, SATA Y SAS A 10 000 RPM)
+* 4 a 60 SSD internos
+* 4 a 14 NVMe internos
+
+
+
+NOTE: El software RAID con unidades DAS locales es compatible con la licencia premium (solo SSD) y la licencia premium XL (SSD o NVMe).
+
+
+
+== Unidades NVMe con software RAID
+
+Es posible configurar RAID de software para usar unidades SSD NVMe. Su entorno debe cumplir con los siguientes requisitos:
+
+* ONTAP Select 9,7 o posterior con una utilidad de administración de puesta en marcha compatible
+* Oferta de licencia de plataforma Premium XL o licencia de evaluación de 90 días
+* VMware ESXi versión 6.7 o posterior
+* Dispositivos NVMe que cumplen con la especificación 1.0 o posterior
+
+
+Es necesario configurar manualmente las unidades NVMe antes de usarlas. Consulte link:task_chk_nvme_configure.html["Configure un host para usar unidades NVMe"] para obtener más información.
