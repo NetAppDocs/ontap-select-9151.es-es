@@ -16,6 +16,15 @@ summary: Puede usar una licencia de evaluación si desea evaluar ONTAP Select an
 [role="lead"]
 Puede usar una licencia de evaluación si desea evaluar ONTAP Select antes de tomar la decisión de realizar la compra. La licencia de evaluación se incluye con la utilidad de administración ONTAP Select Deploy y se aplica automáticamente a cada nodo de ONTAP Select como parte de una implementación de evaluación.
 
+[NOTE]
+====
+Para descargar la utilidad de administración de ONTAP Select Deploy, necesita lo siguiente:
+
+* Una cuenta registrada en el sitio de soporte de NetApp. Si no tiene una cuenta, consulte https://mysupport.netapp.com/site/user/registration["Registro de usuario"^].
+*  https://mysupport.netapp.com/site/downloads/evaluation/ontap-select["Acepte el contrato de licencia para usuario final"^]Para una implementación de ONTAP Select con una licencia de evaluación.
+
+
+====
 
 
 == Características de las licencias
