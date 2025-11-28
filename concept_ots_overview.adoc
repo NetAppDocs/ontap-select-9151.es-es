@@ -97,6 +97,7 @@ ONTAP Select no admite varias funciones de ONTAP. En la mayoría de los casos, e
 * Procesadores de servicios
 * Migración de SVM
 * Cumplimiento de normativas SnapLock
+* Sincronización activa de SnapMirror
 * HCX de VMware
 
 
