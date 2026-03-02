@@ -48,7 +48,7 @@ Cada instancia del Administrador de licencias y, por lo tanto, cada instancia co
 Puede determinar el ID de bloqueo de licencia para la instancia de implementación mediante la interfaz de usuario web de las siguientes formas:
 
 * Página «primeros pasos» esta página se muestra cuando inicia sesión por primera vez en Deploy. También puede mostrar la página haciendo clic en el cuadro desplegable de la parte superior derecha de la página y seleccionando primeros pasos. El LLID se muestra en la sección Add Licenses.
-* Administración haga clic en la ficha *Administración* a la parte superior de la página y, a continuación, haga clic en *sistemas* y *Configuración*.
+* Administración Haz clic en la pestaña *Administración* en la parte superior de la página, luego haz clic en *Sistemas y AutoSupport*.
 
 
 
