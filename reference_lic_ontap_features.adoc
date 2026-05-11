@@ -28,6 +28,9 @@ Las siguientes funciones se incluyen con ONTAP Select y con licencia de forma pr
 * CIFS
 * Deduplicación y compresión
 * FlexCache
++
+Existen limitaciones en la compatibilidad con FlexCache write-back con ONTAP Select. Para obtener más información, consulta link:https://docs.netapp.com/us-en/ontap-select/concept_ots_overview.html#flexcache-write-back-with-ontap-select["FlexCache write-back con ONTAP Select"^].
+
 * FlexClone
 * ISCSI
 * NDMP
